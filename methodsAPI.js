@@ -1,18 +1,21 @@
 const axios = require('axios')
 const crypto = require('crypto');
+require('dotenv').config()
 
-const myShopifyLink = 'https://48e93462b5ce511bd4b58eae9ab68000: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@idoacquire.myshopify.com'
+const myShopifyLink = `https://${process.env.API_KEY}:${process.env.SHOPIFY_PASSWORD}@${process.env.SHOPIFY_SITE}`
 const shopifyOrderAPI = `${myShopifyLink}/admin/api/2020-10/orders.json?status=any`
 const abandonedOrderAPI = `${myShopifyLink}/admin/api/2020-10/checkouts.json`
-const facebookAPI = 'https://graph.facebook.com/v9.0/800968697300789/events?access_token=EAAL13uWflN0BAHYby21dHOKWirnR8v2MajofnR7Fuxhx21cDiLrZAbKhPhogysIL4rnifZAL60WhZAcZCxAlXfhJJE3fnLct9RutPOL39vn0xEYCV6774FZBhItldlmF4qflZBLrrpWstJAqMZAp7BUx9d3iJLIgwxDMhdRPhG9qHveBbRYAWjz'
+const facebookAPI = `https://graph.facebook.com/v9.0/${process.env.FB_PIXEL_ID}/events?access_token=${process.env.FB_PIXEL_TOKEN}`
 
 const shopifyOrderApi = () => {
    axios.get(shopifyOrderAPI)
       .then(res => {
          let shopifyOrders = res.data;
+         let ordersArray = []
          shopifyOrders.orders.forEach(order => {
             let emailStr = order.email;
             let hashStr = crypto.createHash('sha256').update(emailStr).digest('hex');
+            ordersArray.push(order.created_at, order.id)
             axios.post(facebookAPI, {
                "data": [
                   {
@@ -39,6 +42,8 @@ const shopifyOrderApi = () => {
             console.log(res)
           })
          })
+         console.log(ordersArray);
+
       })
    .catch((err) => {
       console.log(err)
@@ -84,7 +89,6 @@ const shopifyAbandonedAPI = () => {
       console.log(err)
    })
 }
-
 
 shopifyOrderApi()
 // shopifyAbandonedAPI()

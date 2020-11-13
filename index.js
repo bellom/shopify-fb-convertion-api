@@ -1,20 +1,84 @@
-const bizSdk = require('facebook-nodejs-business-sdk');
+const http = require('http');
+const cron = require('node-cron');
+const asyncRedis = require("async-redis");
+const client = asyncRedis.createClient();
+const host = 'localhost';
+const port = 8000;
+const axios = require('axios')
+const crypto = require('crypto');
+require('dotenv').config()
 
-const accessToken = 'EAAL13uWflN0BAMPRjGSRu8zvfE4EXww1Ca9e1ZAJAFCWZAk2QGZAQXOHx5uBXJpttW8nlXqWpyfNzQ2Q7wPPqedgpXgi2g5o9gZAZCGsUBLr1z0ADODgHs4OYR4lBIdxj6ZAE6MR19lWOpYQwtRNDHCBG8IvXzpI8IMGKktxLZA0Osv9nUJriZA2';
-const accountId = 'act_{3296388293822423}';
+const requestListener = function (req, res) {
+  res.writeHead(200);
+  res.end('Started Shopify Server')
+}
 
-const FacebookAdsApi = bizSdk.FacebookAdsApi.init(accessToken);
-const AdAccount = bizSdk.AdAccount;
-const Campaign = bizSdk.Campaign;
+client.on("error", function(error) {
+  console.error(error);
+});
 
-const account = new AdAccount(accountId);
-var campaigns;
+const server = http.createServer(requestListener);
+server.listen(port, host, async () => {
+  console.log(`Server is running on http://${host}:${port}`);
+
+  cron.schedule('*/5 * * * * *', async () => {
+    console.log('running SHOPIFY scheduled task.');
+
+    await shopifyOrderApi();
+
+    console.log('Finished running SHOPIFY scheduled task.');
+
+  });
+})
+
+const myShopifyLink = `https://${process.env.API_KEY}:${process.env.SHOPIFY_PASSWORD}@${process.env.SHOPIFY_SITE}`
+const shopifyOrderAPI = `${myShopifyLink}/admin/api/2020-10/orders.json?status=any`
+const facebookAPI = `https://graph.facebook.com/v9.0/${process.env.FB_PIXEL_ID}/events?access_token=${process.env.FB_PIXEL_TOKEN}`
+
+const shopifyOrderApi = async () => {
+
+  const sinceId =   await client.get(process.env.SHOPIFY_ORDER_ID_KEY);
+
+  const requestUrl = sinceId ? `${shopifyOrderAPI}&since_id=${sinceId}` : shopifyOrderAPI;
+  const res = await axios.get(requestUrl);
+  let shopifyOrders = res.data.orders;
+
+  console.log(`last order processed ${sinceId}`);
+  console.log(`processing ${shopifyOrders.length} total orders`);
+
+  shopifyOrders.forEach(async (order) => {    
+    let emailStr = order.email;
+    let hashStr = crypto.createHash("sha256").update(emailStr).digest("hex");
+
+    const productIds = [];
+    for (product in order.line_items) {
+      productIds.push(product.product_id);
+    }
     
-account.read([AdAccount.Fields.name])
-  .then((account) =>{
-    return account.getCampaigns([Campaign.Fields.name], { limit: 10 }) // fields array and params
-  })
-  .then((result) =>{
-    campaigns = result
-    campaigns.forEach((campaign) =>console.log(campaign.name))  
-  }).catch(console.error);
+    const res = await axios
+      .post(facebookAPI, {
+        data: [
+          {
+            event_name: "Purchase",
+            event_time: order.created_at,
+            user_data: {
+              em: hashStr,
+            },
+            custom_data: {
+              value: order.total_price,
+              currency: order.currency,
+              content_ids: productIds,
+              content_type: "product",
+            },
+          },
+        ],
+      });
+
+      console.log(`processed ${order.id}`);
+      console.log(`statusCode: ${res.status}`);
+  });
+
+  if (shopifyOrders.length > 0) {
+    client.set(process.env.SHOPIFY_ORDER_ID_KEY, shopifyOrders[0].id);
+  }
+};
