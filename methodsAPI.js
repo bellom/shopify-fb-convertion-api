@@ -11,38 +11,39 @@ const shopifyOrderApi = () => {
    axios.get(shopifyOrderAPI)
       .then(res => {
          let shopifyOrders = res.data;
-         let ordersArray = []
+         // console.log(shopifyOrders);
          shopifyOrders.orders.forEach(order => {
             let emailStr = order.email;
-            let hashStr = crypto.createHash('sha256').update(emailStr).digest('hex');
-            ordersArray.push(order.created_at, order.id)
-            axios.post(facebookAPI, {
-               "data": [
-                  {
-                    "event_name": "Purchase",
-                    "event_time": order.created_at,
-                    "user_data": {
-                      "fbc": "fb.1.1554763741205.AbCdEfGhIjKlMnOpQrStUvWxYz1234567890",
-                      "fbp": "fb.1.1558571054389.1098115397",
-                      "em": hashStr
-                    },
-                    "custom_data": {
-                      "value": order.total_price,
-                      "currency": order.currency,
-                      "content_ids": [
-                         "product.id.123"
-                      ],
-                      "content_type": "product"
-                   }
-                  }
-               ]
-          })
-          .then(res => {
-            console.log(`statusCode: ${res.statusCode}`)
-            console.log(res)
-          })
+            // let hashStr = crypto.createHash('sha256').update(emailStr).digest('hex');
+            let productIds = []
+            // console.log(order.line_items)
+            for(product in order.line_items){
+               productIds.push(product.product_id);
+               console.log(productIds);
+               // console.log(product.product_id)
+            }
+         //    axios.post(facebookAPI, {
+         //       "data": [
+         //          {
+         //            "event_name": "Purchase",
+         //            "event_time": order.created_at,
+         //            "user_data": {
+         //              "em": hashStr
+         //            },
+         //            "custom_data": {
+         //              "value": order.total_price,
+         //              "currency": order.currency,
+         //              "content_ids": productIds,
+         //              "content_type": "product"
+         //           }
+         //          }
+         //       ]
+         //  })
+         //  .then(res => {
+         //    console.log(`statusCode: ${res.statusCode}`)
+         //    console.log(res)
+         //  })
          })
-         console.log(ordersArray);
 
       })
    .catch((err) => {

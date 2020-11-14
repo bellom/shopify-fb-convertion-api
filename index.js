@@ -6,7 +6,7 @@ const host = 'localhost';
 const port = 8000;
 const axios = require('axios')
 const crypto = require('crypto');
-require('dotenv').config()
+require('dotenv').config();
 
 const requestListener = function (req, res) {
   res.writeHead(200);
@@ -46,14 +46,13 @@ const shopifyOrderApi = async () => {
   console.log(`last order processed ${sinceId}`);
   console.log(`processing ${shopifyOrders.length} total orders`);
 
+  const productIds = [];
   shopifyOrders.forEach(async (order) => {    
     let emailStr = order.email;
     let hashStr = crypto.createHash("sha256").update(emailStr).digest("hex");
-
-    const productIds = [];
-    for (product in order.line_items) {
-      productIds.push(product.product_id);
-    }
+    order.line_items.forEach(product => {
+      productIds.push(product.product_id)
+    })
     
     const res = await axios
       .post(facebookAPI, {
