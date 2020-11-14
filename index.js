@@ -19,8 +19,14 @@ client.on("error", function(error) {
 
 const server = http.createServer(requestListener);
 const port = process.env.PORT || 8000;
-server.listen(port, host, async () => {
-  console.log(`Server is running on http://${host}:${port}`);
+server.listen(port, async (err) => {
+
+  if (err) {
+    console.error(err);
+    process.exit();
+  }
+
+  console.log(`Server is running on port ${port}`);
   cron.schedule('*/5 * * * * *', async () => {
     console.log('running SHOPIFY scheduled task.');
 
