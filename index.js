@@ -2,7 +2,6 @@ const http = require('http');
 const cron = require('node-cron');
 const asyncRedis = require("async-redis");
 const host = 'localhost';
-const port = 8000;
 const axios = require('axios')
 const crypto = require('crypto');
 require('dotenv').config();
@@ -19,8 +18,8 @@ client.on("error", function(error) {
 });
 
 const server = http.createServer(requestListener);
-server.listen(port, host, async () => {
-  console.log(`Server is running on http://${host}:${port}`);
+server.listen(process.env.PORT || PORT, host, async () => {
+  console.log(`Server is running on http://${host}:${process.env.PORT}`);
 
   cron.schedule('*/5 * * * * *', async () => {
     console.log('running SHOPIFY scheduled task.');
