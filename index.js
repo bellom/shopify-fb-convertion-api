@@ -1,12 +1,13 @@
 const http = require('http');
 const cron = require('node-cron');
 const asyncRedis = require("async-redis");
-const client = asyncRedis.createClient();
 const host = 'localhost';
 const port = 8000;
 const axios = require('axios')
 const crypto = require('crypto');
 require('dotenv').config();
+
+const client = asyncRedis.createClient(process.env.REDIS_URL);
 
 const requestListener = function (req, res) {
   res.writeHead(200);
