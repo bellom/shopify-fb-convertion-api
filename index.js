@@ -57,9 +57,13 @@ const shopifyOrderApi = async () => {
     let emailStr = order.email;
     let fn = order.customer.first_name
     let ln = order.customer.last_name
+    let ph = order.billing_address.phone
     let hashedEmail = crypto.createHash("sha256").update(emailStr).digest("hex");
     let hashedFn = crypto.createHash("sha256").update(fn).digest("hex");
     let hashedLn = crypto.createHash("sha256").update(ln).digest("hex");
+    let hashedPh = crypto.createHash("sha256").update(ph).digest("hex");
+    console.log(ph, hashedPh)
+
     
     order.line_items.forEach(product => {
       productIds.push(product.product_id)
@@ -75,6 +79,7 @@ const shopifyOrderApi = async () => {
               em: hashedEmail,
               fn: hashedFn,
               ln: hashedLn,
+              ph: hashedPh,
               client_ip_address: order.client_details.browser_ip,
               client_user_agent: order.client_details.user_agent,
             },
@@ -83,10 +88,6 @@ const shopifyOrderApi = async () => {
               currency: order.currency,
               content_ids: productIds,
               content_type: "product",
-              name: order.billing_address.name,
-              city: order.billing_address.city,
-              country: order.billing_address.country,
-              phone: order.customer.phone,
             },
           },
         ],
